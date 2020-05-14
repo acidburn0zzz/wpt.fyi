@@ -8,7 +8,7 @@ performed by our CI systems (Azure Pipelines and Taskcluster).
 
 The wpt.fyi GitHub Checks code owns only computing the summary data and pushing
 it to GitHub, not ingesting the results from the CI systems. For those, see the
-[`/api/azure`](../api/azure/) and [`/api/taskcluster`](../api/taskcluster)
+[`/api/azure`](/api/azure/) and [`/api/taskcluster`](/api/taskcluster)
 directories.
 
 ## Links
