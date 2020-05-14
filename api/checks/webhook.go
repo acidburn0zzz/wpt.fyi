@@ -12,8 +12,6 @@ import (
 	"regexp"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/web-platform-tests/wpt.fyi/api/azure"
-	"github.com/web-platform-tests/wpt.fyi/api/taskcluster"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -28,29 +26,10 @@ func isWPTFYIApp(appID int64) bool {
 	return false
 }
 
-// checkWebhookHandler handles GitHub events relating to our GitHub Checks[0]
-// support, sent to the /api/webhook/check endpoint.
+// checkWebhookHandler handles GitHub events relating to our wpt.fyi and
+// staging.wpt.fyi GitHub Apps[0], sent to the /api/webhook/check endpoint.
 //
-// This endpoint is for the wpt.fyi[1] and staging.wpt.fyi[2] GitHub Apps.
-// These apps exist to create the 'wpt.fyi results' checks on commits, that
-// summarize the results (reporting regressions, etc) of CI runs done on the
-// various browsers we support. The overall flow is complex, but in short we
-// respond to:
-//
-//   i. check_suite - 
-//   ii. check_run -
-//   iii. pull_request - to handle creating a check_suite for pull requests
-//        from forks.
-//
-// Note that there is also experimental support here for responding to Azure
-// Pipelines and TaskCluster Checks integration. At the current time neither of
-// those flows are active, and we receive results from those CI systems via
-// different methods (Azure Pipelines posts directly to /api/checks/azure, and
-// TaskCluster uses the legacy GitHub Status api).
-//
-// [0]: https://developer.github.com/v3/checks/
-// [1]: https://github.com/apps/wpt-fyi
-// [2]: https://github.com/apps/staging-wpt-fyi
+// [0]: https://github.com/apps/wpt-fyi and https://github.com/apps/staging-wpt-fyi
 func checkWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := shared.NewAppEngineContext(r)
 	log := shared.GetLogger(ctx)
@@ -91,11 +70,9 @@ func checkWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	aeAPI := shared.NewAppEngineAPI(ctx)
 	checksAPI := NewAPI(ctx)
 	if event == "check_suite" {
-		taskclusterAPI := taskcluster.NewAPI(ctx)
-		processed, err = handleCheckSuiteEvent(aeAPI, checksAPI, taskclusterAPI, payload)
+		processed, err = handleCheckSuiteEvent(aeAPI, checksAPI, payload)
 	} else if event == "check_run" {
-		azureAPI := azure.NewAPI(ctx)
-		processed, err = handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+		processed, err = handleCheckRunEvent(aeAPI, checksAPI, payload)
 	} else if event == "pull_request" {
 		processed, err = handlePullRequestEvent(aeAPI, checksAPI, payload)
 	}
@@ -117,7 +94,7 @@ func checkWebhookHandler(w http.ResponseWriter, r *http.Request) {
 // TODO: Better docs
 // handleCheckSuiteEvent handles a check_suite (re)requested event by ensuring
 // that a check_run exists for each product that contains results for the head SHA.
-func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, taskclusterAPI taskcluster.API, payload []byte) (bool, error) {
+func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []byte) (bool, error) {
 	log := shared.GetLogger(aeAPI.Context())
 	var checkSuite github.CheckSuiteEvent
 	if err := json.Unmarshal(payload, &checkSuite); err != nil {
@@ -133,19 +110,8 @@ func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, taskcluster
 
 	log.Debugf("Check suite %s: %s/%s @ %s (App %v, ID %v)", action, owner, repo, shared.CropString(sha, 7), appName, appID)
 
-	if !isWPTFYIApp(appID) &&
-		appID != taskcluster.AppID {
+	if !isWPTFYIApp(appID) {
 		log.Infof("Ignoring check_suite App ID %v", appID)
-		return false, nil
-	}
-
-	// Experimental support for consuming TaskCluster results via the
-	// GitHub Checks API.
-	if appID == taskcluster.AppID {
-		if aeAPI.IsFeatureEnabled("processTaskclusterCheckRunEvents") {
-			return taskclusterAPI.HandleCheckSuiteEvent(&checkSuite)
-		}
-		log.Infof("Ignoring Taskcluster CheckSuite event")
 		return false, nil
 	}
 
@@ -199,7 +165,6 @@ func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, taskcluster
 func handleCheckRunEvent(
 	aeAPI shared.AppEngineAPI,
 	checksAPI API,
-	azureAPI azure.API,
 	payload []byte) (bool, error) {
 
 	log := shared.GetLogger(aeAPI.Context())
@@ -217,19 +182,8 @@ func handleCheckRunEvent(
 
 	log.Debugf("Check run %s: %s/%s @ %s (App %v, ID %v)", action, owner, repo, shared.CropString(sha, 7), appName, appID)
 
-	if !isWPTFYIApp(appID) &&
-		appID != azure.PipelinesAppID {
+	if !isWPTFYIApp(appID) {
 		log.Infof("Ignoring check_run App ID %v", appID)
-		return false, nil
-	}
-
-	// Experimental support for consuming Azure Pipelines results via the
-	// GitHub Checks API.
-	if appID == azure.PipelinesAppID {
-		if aeAPI.IsFeatureEnabled("processAzureCheckRunEvents") {
-			return azureAPI.HandleCheckRunEvent(checkRun)
-		}
-		log.Infof("Ignoring Azure pipelines event")
 		return false, nil
 	}
 

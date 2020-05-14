@@ -13,7 +13,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
 	"github.com/stretchr/testify/assert"
-	"github.com/web-platform-tests/wpt.fyi/api/azure/mock_azure"
 	"github.com/web-platform-tests/wpt.fyi/api/checks/mock_checks"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 	"github.com/web-platform-tests/wpt.fyi/shared/sharedtest"
@@ -38,9 +37,8 @@ func TestHandleCheckRunEvent_InvalidApp(t *testing.T) {
 	aeAPI := sharedtest.NewMockAppEngineAPI(mockCtrl)
 	aeAPI.EXPECT().Context().AnyTimes().Return(sharedtest.NewTestContext())
 	checksAPI := mock_checks.NewMockAPI(mockCtrl)
-	azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-	processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+	processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 	assert.Nil(t, err)
 	assert.False(t, processed)
 }
@@ -57,9 +55,8 @@ func TestHandleCheckRunEvent_Created_Completed(t *testing.T) {
 	aeAPI.EXPECT().Context().AnyTimes().Return(sharedtest.NewTestContext())
 	aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 	checksAPI := mock_checks.NewMockAPI(mockCtrl)
-	azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-	processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+	processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 	assert.Nil(t, err)
 	assert.False(t, processed)
 }
@@ -76,9 +73,8 @@ func TestHandleCheckRunEvent_Created_Pending_UserNotWhitelisted(t *testing.T) {
 	aeAPI.EXPECT().Context().AnyTimes().Return(sharedtest.NewTestContext())
 	aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 	checksAPI := mock_checks.NewMockAPI(mockCtrl)
-	azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-	processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+	processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 	assert.Nil(t, err)
 	assert.False(t, processed)
 }
@@ -96,9 +92,8 @@ func TestHandleCheckRunEvent_Created_Pending(t *testing.T) {
 	aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 	checksAPI := mock_checks.NewMockAPI(mockCtrl)
 	checksAPI.EXPECT().ScheduleResultsProcessing(sha, sharedtest.SameProductSpec("chrome"))
-	azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-	processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+	processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 	assert.Nil(t, err)
 	assert.True(t, processed)
 }
@@ -141,9 +136,8 @@ func TestHandleCheckRunEvent_ActionRequested_Ignore(t *testing.T) {
 			aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 			checksAPI := mock_checks.NewMockAPI(mockCtrl)
 			checksAPI.EXPECT().IgnoreFailure(username, owner, repo, event.GetCheckRun(), event.GetInstallation())
-			azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-			processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+			processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 			assert.Nil(t, err)
 			assert.True(t, processed)
 		})
@@ -188,9 +182,8 @@ func TestHandleCheckRunEvent_ActionRequested_Recompute(t *testing.T) {
 			aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 			checksAPI := mock_checks.NewMockAPI(mockCtrl)
 			checksAPI.EXPECT().ScheduleResultsProcessing(sha, sharedtest.SameProductSpec("chrome[experimental]"))
-			azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-			processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+			processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 			assert.Nil(t, err)
 			assert.True(t, processed)
 		})
@@ -214,9 +207,8 @@ func TestHandleCheckRunEvent_ActionRequested_Cancel(t *testing.T) {
 	aeAPI.EXPECT().IsFeatureEnabled(checksForAllUsersFeature).Return(false)
 	checksAPI := mock_checks.NewMockAPI(mockCtrl)
 	checksAPI.EXPECT().CancelRun(username, shared.WPTRepoOwner, shared.WPTRepoName, event.GetCheckRun(), event.GetInstallation())
-	azureAPI := mock_azure.NewMockAPI(mockCtrl)
 
-	processed, err := handleCheckRunEvent(aeAPI, checksAPI, azureAPI, payload)
+	processed, err := handleCheckRunEvent(aeAPI, checksAPI, payload)
 	assert.Nil(t, err)
 	assert.True(t, processed)
 }
