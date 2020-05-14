@@ -86,7 +86,7 @@ func checkWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// TODO: Better docs
+// TODO: Better docstring
 // handleCheckSuiteEvent handles a check_suite (re)requested event by ensuring
 // that a check_run exists for each product that contains results for the head SHA.
 func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []byte) (bool, error) {
@@ -116,7 +116,9 @@ func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []b
 		return false, nil
 	}
 
-	// TODO: Explain what the meaning of these actions are.
+	// A CheckSuite is 'requested' whenever a commit is made in the
+	// repository, and can be re-requested by a user clicking a 'retry'
+	// button in the GitHub UI. For either of these events, we... TODO.
 	if action == "requested" || action == "rerequested" {
 		pullRequests := checkSuite.GetCheckSuite().PullRequests
 		prNumbers := []int{}
@@ -154,7 +156,7 @@ func handleCheckSuiteEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []b
 	return false, nil
 }
 
-// TODO: better docs
+// TODO: better docstring
 // handleCheckRunEvent handles a check_run rerequested events by updating
 // the status based on whether results for the check_run's product exist.
 func handleCheckRunEvent(
@@ -188,7 +190,21 @@ func handleCheckRunEvent(
 		return false, nil
 	}
 
-	// TODO: Explain all this, especially what a requested_action is.
+	// Determine whether or not we need to schedule processing the results
+	// of a CheckRun. The 'requested_action' event occurs when a user
+	// clicks on one of the 'action' buttons we setup as part of our
+	// CheckRuns[0]; see summaries.Summary.GetActions().
+	//
+	// [0]: https://developer.github.com/v3/checks/runs/#check-runs-and-requested-actions
+	//
+	// TODO: It's not clear to me who created the CheckRun that created
+	// this event. Did 'we' (wpt.fyi app) create this CheckRun, or is this
+	// an event from a CheckRun from AP/TaskCluster? It seems like there's a loop?
+	//
+	//	handleCheckRunEvent --> ScheduleResultsProcessing --> /api/checks/{sha}
+	//	--> updateChecksHandlers --> updateCheckRunSummary --> CreateCheckRun
+	//	--> [GitHub] --> /api/checks/webhook --> checkWebhookHandler
+	//	--> handleCheckRunEvent ...
 	status := checkRun.GetCheckRun().GetStatus()
 	shouldSchedule := false
 	if (action == "created" && status != "completed") || action == "rerequested" {
@@ -274,7 +290,7 @@ func handlePullRequestEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []
 	return false, nil
 }
 
-// TODO: Document
+// TODO: Document what this function is for.
 func scheduleProcessingForExistingRuns(ctx context.Context, sha string, products ...shared.ProductSpec) (bool, error) {
 	// Jump straight to completed check_run for already-present runs for the SHA.
 	store := shared.NewAppEngineDatastore(ctx, false)
@@ -298,6 +314,7 @@ func scheduleProcessingForExistingRuns(ctx context.Context, sha string, products
 }
 
 // createCheckRun submits an http POST to create the check run on GitHub, handling JWT auth for the app.
+// TODO: Shouldn't this be in /api/check/api.go?
 func createCheckRun(ctx context.Context, suite shared.CheckSuite, opts github.CreateCheckRunOptions) (bool, error) {
 	log := shared.GetLogger(ctx)
 	status := ""
