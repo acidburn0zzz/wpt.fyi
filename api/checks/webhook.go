@@ -17,13 +17,8 @@ import (
 
 var runNameRegex = regexp.MustCompile(`^(?:(?:staging\.)?wpt\.fyi - )(.*)$`)
 
-// TODO: what is checksStagingAppID ?!
 func isWPTFYIApp(appID int64) bool {
-	switch appID {
-	case wptfyiCheckAppID, wptfyiStagingCheckAppID, checksStagingAppID:
-		return true
-	}
-	return false
+	return appID == wptfyiCheckAppID || appID == wptfyiStagingCheckAppID
 }
 
 // checkWebhookHandler handles GitHub events relating to our wpt.fyi and

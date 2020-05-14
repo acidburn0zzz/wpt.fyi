@@ -24,7 +24,6 @@ import (
 const (
 	wptfyiCheckAppID        = int64(23318) // https://github.com/apps/wpt-fyi-status-check
 	wptfyiStagingCheckAppID = int64(19965) // https://github.com/apps/staging-wpt-fyi-status-check
-	checksStagingAppID      = int64(21580) // https://github.com/apps/checks-staging-instance
 
 	wptRepoInstallationID        = int64(577173)
 	wptRepoStagingInstallationID = int64(449270)
