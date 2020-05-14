@@ -244,8 +244,8 @@ func handleCheckRunEvent(
 	return false, nil
 }
 
-// handlePullRequestEvent monitors for pull requests from forks, ensuring that
-// a GitHub check_suite is created in the main WPT repository for those. GitHub
+// handlePullRequestEvent reaches to pull requests from forks, ensuring that a
+// GitHub check_suite is created in the main WPT repository for those. GitHub
 // automatically creates a check_suite for code pushed to the WPT repository,
 // so we don't need to do anything for same-repo pull requests.
 func handlePullRequestEvent(aeAPI shared.AppEngineAPI, checksAPI API, payload []byte) (bool, error) {
